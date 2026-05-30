@@ -1,3 +1,4 @@
+```python
 from fastapi import FastAPI, Request
 import requests
 import os
@@ -14,6 +15,19 @@ def home():
     return {"status": "BullVision webhook online"}
 
 
+def clean_symbol(symbol):
+    symbol = str(symbol).upper()
+
+    if "XAU" in symbol:
+        return "XAU"
+    elif "BTC" in symbol:
+        return "BTC"
+    elif "ETH" in symbol:
+        return "ETH"
+
+    return symbol.replace("USD", "")
+
+
 @app.post("/webhook")
 async def webhook(request: Request):
     data = await request.json()
@@ -21,51 +35,63 @@ async def webhook(request: Request):
     if data.get("secret") != SECRET:
         return {"status": "unauthorized"}
 
-    msg_type = data.get("type", "")
-    symbol = data.get("symbol", "N/A")
-    direction = data.get("direction", "").upper()
-    timeframe = data.get("timeframe", "N/A")
+    msg_type = str(data.get("type", "")).lower()
+
+    symbol = clean_symbol(data.get("symbol", "N/A"))
+    direction = str(data.get("direction", "")).upper()
+
+    entry = data.get("entry", "")
+    sl = data.get("sl", "")
+
+    tp1 = data.get("tp1", "")
+    tp2 = data.get("tp2", "")
+    tp3 = data.get("tp3", "")
 
     if msg_type == "signal":
+
         emoji = "🟢" if direction == "BUY" else "🔴"
 
         message = f"""
-{emoji} BULLVISION INDICATOR SIGNAL
+{emoji} BV-SIGNAL
 
-📊 Asset: {symbol}
-⏱ Timeframe: {timeframe}
-📌 Direction: {direction}
+📈 {symbol} {direction}
 
-🎯 Entry: {data.get("entry")}
-🛑 Stop Loss: {data.get("sl")}
+🎯 ENTRY: {entry}
+🛑 SL: {sl}
 
-✅ TP1: {data.get("tp1")}
-✅ TP2: {data.get("tp2")}
-✅ TP3: {data.get("tp3")}
-
-⚠️ Segnale automatico da TradingView
+✅ TP1: {tp1}
+✅ TP2: {tp2}
+✅ TP3: {tp3}
 """
 
     elif msg_type == "breakeven":
+
         message = f"""
-⚡ BULLVISION BREAK EVEN
+⚡ BV-SIGNAL BREAK EVEN
 
-📊 Asset: {symbol}
-📌 Direction: {direction}
+📈 {symbol} {direction}
 
-🎯 Entry: {data.get("entry")}
-🔐 Azione: Sposta SL a Break Even
+🎯 ENTRY: {entry}
 
-⚠️ Alert automatico da TradingView
+🔐 AZIONE: SPOSTA SL A BE
 """
+
     else:
         return {"status": "ignored"}
 
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
 
-    requests.post(url, json={
-        "chat_id": CHAT_ID,
-        "text": message
-    })
+    response = requests.post(
+        url,
+        json={
+            "chat_id": CHAT_ID,
+            "text": message.strip()
+        }
+    )
 
-    return {"status": "sent"}
+    return {
+        "status": "sent",
+        "telegram_status": response.status_code,
+        "telegram_response": response.text
+    }
+```
