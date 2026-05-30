@@ -1,4 +1,3 @@
-```python
 from fastapi import FastAPI, Request
 import requests
 import os
@@ -6,7 +5,7 @@ import os
 app = FastAPI()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHAT_ID = "-1002278846520"
+CHAT_ID = os.getenv("CHAT_ID", "-1002278846520")
 SECRET = os.getenv("SECRET", "bullvision")
 
 
@@ -94,4 +93,3 @@ async def webhook(request: Request):
         "telegram_status": response.status_code,
         "telegram_response": response.text
     }
-```
